@@ -92,13 +92,24 @@ def gradcam(img_array, model, layer_name, class_idx):
         outputs=[model.get_layer(layer_name).output, model.output]
     )
 
-    class_idx = int(class_idx)  # HARD CAST (important)
+    class_idx = int(class_idx)  # Ensure integer for indexing
 
     with tf.GradientTape() as tape:
         conv_outputs, predictions = grad_model(img_array)
+        
+        # --- FIX FOR TENSORFLOW 2.16+ / KERAS 3 ---
+        # Keras 3 may return predictions as a list. We extract the tensor.
+        if isinstance(predictions, list):
+            predictions = predictions[0]
+        # ------------------------------------------
+
         loss = predictions[:, class_idx]
 
     grads = tape.gradient(loss, conv_outputs)
+    
+    # Check if conv_outputs is a list (another Keras 3 quirk)
+    if isinstance(conv_outputs, list):
+        conv_outputs = conv_outputs[0]
 
     conv_outputs = conv_outputs[0]
     grads = grads[0]
