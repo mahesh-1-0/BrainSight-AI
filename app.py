@@ -155,10 +155,13 @@ def process_brain_scan(image_path):
     img_array, original = load_image_from_file(image_path)
     
     preds = model.predict(img_array, verbose=0)
-    class_idx = np.argmax(preds[0])
+
+    # Force scalar index (important for NumPy 2.x)
+    class_idx = int(np.argmax(preds, axis=1)[0])
+
     confidence = float(preds[0][class_idx]) * 100
     label = CLASS_NAMES[class_idx]
-    
+
     heatmap = gradcam(img_array, model, LAST_CONV_LAYER, class_idx)
     final_img = create_visual(original, heatmap, label)
     
