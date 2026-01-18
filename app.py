@@ -52,9 +52,18 @@ else:
     genai.configure(api_key=GEMINI_API_KEY)
 
 # Load model (global to avoid reloading)
-print("Loading model...")
-model = load_model(MODEL_PATH, compile=False)
-print("Model loaded successfully!")
+model = None
+
+if os.path.exists(MODEL_PATH):
+    try:
+        print("Loading model...")
+        model = load_model(MODEL_PATH, compile=False)
+        print("Model loaded successfully!")
+    except Exception as e:
+        print(f"Failed to load model: {e}")
+        model = None
+else:
+    print("Model file not found. Running in demo mode (no ML inference).")
 
 # ===============================
 # Brain Tumor Detection Functions
@@ -139,6 +148,10 @@ def create_visual(original, heatmap, label):
 
 def process_brain_scan(image_path):
     """Process brain scan and return results"""
+    
+    if model is None:
+        raise RuntimeError("ML model is not available in this deployment.")
+    
     img_array, original = load_image_from_file(image_path)
     
     preds = model.predict(img_array, verbose=0)
