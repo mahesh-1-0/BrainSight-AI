@@ -87,18 +87,19 @@ def load_image_from_file(file_path):
     return img, original
 
 def gradcam(img_array, model, layer_name, class_idx):
-    """Generate Grad-CAM heatmap"""
     grad_model = tf.keras.models.Model(
         inputs=model.inputs,
         outputs=[model.get_layer(layer_name).output, model.output]
     )
+
+    class_idx = int(class_idx)  # HARD CAST (important)
 
     with tf.GradientTape() as tape:
         conv_outputs, predictions = grad_model(img_array)
         loss = predictions[:, class_idx]
 
     grads = tape.gradient(loss, conv_outputs)
-    
+
     conv_outputs = conv_outputs[0]
     grads = grads[0]
 
@@ -714,4 +715,3 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     debug = os.environ.get('FLASK_ENV') == 'development'
     app.run(debug=debug, host='0.0.0.0', port=port)
-
