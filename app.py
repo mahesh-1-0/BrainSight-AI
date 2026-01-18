@@ -18,6 +18,7 @@ from datetime import datetime
 import base64
 import io
 import re
+import gc  # <--- CHANGED: Added garbage collection
 
 # Load environment variables from .env file if available (optional)
 try:
@@ -86,7 +87,8 @@ def load_image_from_file(file_path):
     img = np.expand_dims(img, axis=0)
     return img, original
 
-def gradcam(img_array, model, layer_name, class_idx):
+def gradcam(input_data, model, layer_name, class_idx):
+    # <--- CHANGED: Updated inputs to accept dictionary or tensor
     grad_model = tf.keras.models.Model(
         inputs=model.inputs,
         outputs=[model.get_layer(layer_name).output, model.output]
@@ -95,7 +97,7 @@ def gradcam(img_array, model, layer_name, class_idx):
     class_idx = int(class_idx)  # Ensure integer for indexing
 
     with tf.GradientTape() as tape:
-        conv_outputs, predictions = grad_model(img_array)
+        conv_outputs, predictions = grad_model(input_data)
         
         # --- FIX FOR TENSORFLOW 2.16+ / KERAS 3 ---
         # Keras 3 may return predictions as a list. We extract the tensor.
@@ -118,6 +120,11 @@ def gradcam(img_array, model, layer_name, class_idx):
     cam = tf.reduce_sum(weights * conv_outputs, axis=-1)
 
     cam = np.maximum(cam.numpy(), 0)
+    
+    # Avoid division by zero
+    if np.max(cam) == 0:
+        return cam
+        
     cam = cam / (np.max(cam) + 1e-8)
 
     return cam
@@ -166,7 +173,19 @@ def process_brain_scan(image_path):
     
     img_array, original = load_image_from_file(image_path)
     
-    preds = model.predict(img_array, verbose=0)
+    # <--- CHANGED: Fix for "Structure of inputs doesn't match" error
+    # We check if the model expects named inputs and wrap the array in a dict
+    input_data = img_array
+    if hasattr(model, 'input_names') and model.input_names:
+        # e.g. {'input_layer': img_array}
+        input_data = {model.input_names[0]: img_array}
+
+    # Predict using the properly formatted input
+    preds = model.predict(input_data, verbose=0)
+
+    # Handle Keras 3 returning a list
+    if isinstance(preds, list):
+        preds = preds[0]
 
     # Force scalar index (important for NumPy 2.x)
     class_idx = int(np.argmax(preds, axis=1)[0])
@@ -174,9 +193,26 @@ def process_brain_scan(image_path):
     confidence = float(preds[0][class_idx]) * 100
     label = CLASS_NAMES[class_idx]
 
-    heatmap = gradcam(img_array, model, LAST_CONV_LAYER, class_idx)
-    final_img = create_visual(original, heatmap, label)
+    # <--- CHANGED: Added Memory Safety Block
+    # If GradCAM crashes (due to memory), we catch it and continue
+    try:
+        heatmap = gradcam(input_data, model, LAST_CONV_LAYER, class_idx)
+        final_img = create_visual(original, heatmap, label)
+    except Exception as e:
+        print(f"WARNING: GradCAM failed (likely low memory). Skipping heatmap. Error: {e}")
+        # Fallback: Just return the original image with the label text drawn on it
+        final_img = original.copy()
+        cv2.rectangle(final_img, (10, 10), (360, 48), (0, 0, 0), -1)
+        cv2.putText(
+            final_img, f"Pred: {label} (No Heatmap)", (15, 38),
+            cv2.FONT_HERSHEY_SIMPLEX, 0.9,
+            (255, 255, 255), 2
+        )
     
+    # <--- CHANGED: Explicit memory cleanup
+    gc.collect()
+    tf.keras.backend.clear_session()
+
     return final_img, label, confidence, preds[0]
 
 # ===============================
