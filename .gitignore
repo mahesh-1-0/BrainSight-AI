@@ -58,7 +58,7 @@ desktop.ini
 *.log
 
 # Model file (if too large, consider Git LFS)
-best_model_dense.h5
+#best_model_dense.h5
 
 # Temporary files
 *.tmp
