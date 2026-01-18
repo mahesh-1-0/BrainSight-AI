@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analysis Results - Brain Tumor Detection</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 20px;
+        }
+        
+        h1 {
+            color: #1a237e;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+        
+        .patient-name {
+            color: #667eea;
+            font-size: 1.2em;
+            font-weight: 600;
+        }
+        
+        .results-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        @media (max-width: 768px) {
+            .results-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .result-card {
+            background: #f8f9ff;
+            border-radius: 15px;
+            padding: 25px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .result-card h3 {
+            color: #1a237e;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+        
+        .prediction {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .confidence {
+            font-size: 1.1em;
+            color: #666;
+        }
+        
+        .confidence-bar {
+            width: 100%;
+            height: 25px;
+            background: #e0e0e0;
+            border-radius: 12px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+        
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            transition: width 1s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+        
+        .image-container {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .image-container img {
+            max-width: 100%;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        .analysis-section {
+            background: #fff9e6;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            border-left: 4px solid #ffc107;
+        }
+        
+        .analysis-section h3 {
+            color: #1a237e;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+        
+        .analysis-text {
+            color: #333;
+            line-height: 1.8;
+            white-space: pre-wrap;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+        
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+        
+        .btn-secondary:hover {
+            background: #d0d0d0;
+        }
+        
+        .disclaimer {
+            background: #ffebee;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 30px;
+            border-left: 4px solid #c62828;
+        }
+        
+        .disclaimer p {
+            color: #c62828;
+            font-size: 0.9em;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Analysis Results</h1>
+            <div class="patient-name">Patient: {{ name }}</div>
+        </div>
+        
+        <div class="results-grid">
+            <div class="result-card">
+                <h3>Prediction</h3>
+                <div class="prediction">{{ prediction.replace('_', ' ').title() }}</div>
+            </div>
+            
+            <div class="result-card">
+                <h3>Confidence Level</h3>
+                <div class="confidence">{{ "%.2f"|format(confidence) }}%</div>
+                <div class="confidence-bar">
+                    <div class="confidence-fill" style="width: {{ confidence }}%">{{ "%.1f"|format(confidence) }}%</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="image-container">
+            <img src="{{ image_url }}" alt="Analysis Result" id="resultImage">
+        </div>
+        
+        <div class="analysis-section">
+            <h3>🤖 AI Medical Analysis</h3>
+            <div class="analysis-text">{{ analysis }}</div>
+        </div>
+        
+        <div class="actions">
+            <a href="{{ pdf_url }}" class="btn btn-primary" download>📥 Download PDF Report</a>
+            <a href="/" class="btn btn-secondary">🔄 New Analysis</a>
+        </div>
+        
+        <div class="disclaimer">
+            <p><strong>⚠️ Important Disclaimer:</strong> This report is generated by an AI system for preliminary analysis only. It should not be used as a substitute for professional medical diagnosis, treatment, or advice. Please consult with qualified healthcare professionals for accurate diagnosis and treatment recommendations.</p>
+        </div>
+    </div>
+    
+    <script>
+        // Animate confidence bar on load
+        window.addEventListener('load', () => {
+            const fill = document.querySelector('.confidence-fill');
+            const width = fill.style.width;
+            fill.style.width = '0%';
+            setTimeout(() => {
+                fill.style.width = width;
+            }, 100);
+        });
+    </script>
+</body>
+</html>
+
