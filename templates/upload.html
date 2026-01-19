@@ -189,6 +189,97 @@
         .back-link a:hover {
             text-decoration: underline;
         }
+
+        .or-divider {
+            margin: 25px 0 15px;
+            text-align: center;
+            position: relative;
+            font-size: 0.9em;
+            color: #777;
+        }
+
+        .or-divider::before,
+        .or-divider::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            width: 40%;
+            height: 1px;
+            background: #ddd;
+        }
+
+        .or-divider::before {
+            left: 0;
+        }
+
+        .or-divider::after {
+            right: 0;
+        }
+
+        .examples-area {
+            border: 2px dashed #b39ddb;
+            border-radius: 15px;
+            padding: 20px;
+            background: #faf5ff;
+        }
+
+        .examples-header {
+            font-weight: 600;
+            color: #4a148c;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .examples-subtext {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .examples-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px;
+        }
+
+        .example-card {
+            border-radius: 10px;
+            overflow: hidden;
+            background: #fff;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border 0.2s ease;
+            border: 2px solid transparent;
+        }
+
+        .example-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+        }
+
+        .example-card.selected {
+            border-color: #7e57c2;
+            box-shadow: 0 0 0 3px rgba(126, 87, 194, 0.25);
+        }
+
+        .example-image {
+            width: 100%;
+            height: 90px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .example-label {
+            padding: 6px 8px 8px;
+            font-size: 0.8em;
+            text-align: center;
+            color: #4a148c;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
     </style>
 </head>
 <body>
@@ -205,7 +296,26 @@
                 <div class="upload-hint">Brain MRI Scan Image (JPG, PNG, JPEG)</div>
                 <input type="file" id="imageInput" name="image" accept="image/*" required>
             </div>
-            
+
+            <div class="or-divider">or</div>
+
+            {% if examples %}
+            <div class="examples-area">
+                <div class="examples-header">Choose a sample MRI scan from us</div>
+                <div class="examples-subtext">Perfect for trying the system without your own scan.</div>
+                <div class="examples-grid" id="examplesGrid">
+                    {% for img in examples %}
+                    <div class="example-card" data-filename="{{ img }}">
+                        <img src="/example_image/{{ img }}" alt="Sample MRI {{ loop.index }}" class="example-image">
+                        <div class="example-label">{{ img }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <input type="hidden" id="exampleInput" name="example_image" value="">
+
             <div class="file-info" id="fileInfo"></div>
             
             <div class="error" id="errorMsg"></div>
@@ -226,12 +336,15 @@
     <script>
         const uploadArea = document.getElementById('uploadArea');
         const fileInput = document.getElementById('imageInput');
+        const exampleInput = document.getElementById('exampleInput');
         const fileInfo = document.getElementById('fileInfo');
         const uploadForm = document.getElementById('uploadForm');
         const submitBtn = document.getElementById('submitBtn');
         const loading = document.getElementById('loading');
         const errorMsg = document.getElementById('errorMsg');
-        
+        const examplesGrid = document.getElementById('examplesGrid');
+        let selectedExample = null;      
+
         // Click to upload
         uploadArea.addEventListener('click', () => {
             fileInput.click();
@@ -261,6 +374,8 @@
         fileInput.addEventListener('change', (e) => {
             if (e.target.files.length > 0) {
                 showFileInfo(e.target.files[0]);
+                // Clear any selected example when user picks a file
+                clearSelectedExample();
             }
         });
         
@@ -272,19 +387,50 @@
             fileInfo.classList.add('show');
             errorMsg.classList.remove('show');
         }
-        
+
+        // Example image selection
+        if (examplesGrid) {
+            examplesGrid.addEventListener('click', (e) => {
+                const card = e.target.closest('.example-card');
+                if (!card) return;
+
+                // Clear file selection if any
+                fileInput.value = '';
+                fileInfo.classList.remove('show');
+
+                // Update selected example UI
+                clearSelectedExample();
+                card.classList.add('selected');
+                selectedExample = card.getAttribute('data-filename');
+                exampleInput.value = selectedExample;
+                errorMsg.classList.remove('show');
+            });
+        }
+
+        function clearSelectedExample() {
+            const cards = document.querySelectorAll('.example-card.selected');
+            cards.forEach(c => c.classList.remove('selected'));
+            selectedExample = null;
+            exampleInput.value = '';
+        }
+
         // Form submission
         uploadForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            if (!fileInput.files.length) {
-                showError('Please select an image file');
+            if (!fileInput.files.length && !selectedExample) {
+                showError('Please upload an MRI image or choose one of the sample scans.');
                 return;
             }
             
             const formData = new FormData();
-            formData.append('image', fileInput.files[0]);
-            
+            if (fileInput.files.length) {
+                formData.append('image', fileInput.files[0]);
+            }
+            if (selectedExample) {
+                formData.append('example_image', selectedExample);
+            }
+
             submitBtn.disabled = true;
             loading.classList.add('show');
             errorMsg.classList.remove('show');

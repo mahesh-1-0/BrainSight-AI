@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, session, send_file, jsonify
 import os
+import shutil
 import cv2
 import numpy as np
 import tensorflow as tf
@@ -31,11 +32,13 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-change-this-in-production')
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['OUTPUT_FOLDER'] = 'outputs'
+app.config['EXAMPLE_FOLDER'] = 'examples'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
 # Create necessary directories
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
+os.makedirs(app.config['EXAMPLE_FOLDER'], exist_ok=True)
 
 # ===============================
 # CONFIG
@@ -44,6 +47,18 @@ MODEL_PATH = "best_model_dense.h5"
 LAST_CONV_LAYER = "top_activation"
 CLASS_NAMES = ["brain_glioma", "brain_menin", "brain_tumor"]
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
+
+# Preload list of example images (if any)
+try:
+    EXAMPLE_IMAGES = sorted(
+        [
+            f
+            for f in os.listdir(app.config['EXAMPLE_FOLDER'])
+            if f.lower().endswith(('.jpg', '.jpeg', '.png'))
+        ]
+    )
+except FileNotFoundError:
+    EXAMPLE_IMAGES = []
 
 if not GEMINI_API_KEY:
     print("WARNING: GEMINI_API_KEY not set. AI analysis feature will not work.")
@@ -656,27 +671,47 @@ def upload_name():
         return render_template('index.html', error='Please enter your name')
     
     session['patient_name'] = name
-    return render_template('upload.html', name=name)
+    return render_template('upload.html', name=name, examples=EXAMPLE_IMAGES)
+
+
+@app.route('/example_image/<filename>')
+def example_image(filename):
+    """Serve example MRI images"""
+    example_path = os.path.join(app.config['EXAMPLE_FOLDER'], filename)
+    if os.path.exists(example_path):
+        return send_file(example_path, mimetype='image/jpeg')
+    return "Example image not found", 404
 
 @app.route('/process', methods=['POST'])
 def process_image():
     """Process uploaded image"""
     if 'patient_name' not in session:
         return jsonify({'error': 'Session expired. Please start over.'}), 400
+
+    # Accept either an uploaded image or a selected example image
+    file = request.files.get('image')
+    example_image_name = request.form.get('example_image', '').strip()
     
-    if 'image' not in request.files:
-        return jsonify({'error': 'No image file provided'}), 400
-    
-    file = request.files['image']
-    if file.filename == '':
-        return jsonify({'error': 'No file selected'}), 400
+    if (not file or file.filename == '') and not example_image_name:
+        return jsonify({'error': 'Please upload an MRI image or choose one of the sample scans.'}), 400
     
     try:
-        # Save uploaded file
-        filename = secure_filename(file.filename)
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        upload_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{timestamp}_{filename}")
-        file.save(upload_path)
+        
+        # Determine image source: uploaded file or example image
+        if file and file.filename != '':
+            # Save uploaded file
+            filename = secure_filename(file.filename)
+            upload_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{timestamp}_{filename}")
+            file.save(upload_path)
+        else:
+            # Use selected example image
+            example_path = os.path.join(app.config['EXAMPLE_FOLDER'], example_image_name)
+            if not os.path.exists(example_path):
+                return jsonify({'error': 'Selected sample image could not be found on the server.'}), 400
+            filename = secure_filename(example_image_name)
+            upload_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{timestamp}_{filename}")
+            shutil.copy(example_path, upload_path)
         
         # Process brain scan
         output_image, label, confidence, predictions = process_brain_scan(upload_path)
