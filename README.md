@@ -58,3 +58,80 @@ Aligned directly with **UN SDG 3 (Good Health and Well-Being)**, the project aim
 ---
 
 ## 🛠️ Architecture & Tech Stack
+[ Cranial MRI Input ]
+│
+├──> DenseNet CNN Classifier ──────> [ Prediction & Confidence Score ]
+│
+├──> Grad-CAM Layer Visualizer ───> [ Anatomical Activation Heatmap ]
+│
+└──> Gemini LLM Engine ───────────> [ Structured Clinical Findings ]
+│
+[ Downloadable PDF Report ]
+
+| Domain | Tools & Technologies |
+| :--- | :--- |
+| **Core Language** | Python 3.10+ |
+| **Deep Learning** | TensorFlow, Keras, DenseNet CNN |
+| **Model Interpretability** | Grad-CAM (Gradient-Weighted Class Activation Mapping) |
+| **Computer Vision** | OpenCV, NumPy, Matplotlib |
+| **Clinical Text Synthesis** | Google Gemini API |
+| **Web Server & Backend** | Flask, Gunicorn |
+| **Report Generation** | ReportLab (PDF Engine) |
+| **Deployment & CI/CD** | Docker, Railway Cloud Platform, Git/GitHub |
+
+---
+
+## 📊 Model Evaluation & Benchmarks
+
+The deep learning architecture was evaluated across standardized brain MRI cohorts:
+
+* **Overall Classification Accuracy:** ~88% – 90% across validated multi-class test sets.
+* **Convergence Behavior:** Steady convergence during training, achieving ~96% training accuracy with minimal loss divergence and low overfitting.
+* **Balanced Diagnostics:** High recall and precision across Glioma and Pituitary classes, lowering false negative risks during preliminary triage.
+
+---
+
+## 🚀 Local Installation & Setup
+
+### Prerequisites
+* Python 3.10 or higher
+* Git
+* A Google Gemini API Key
+
+### 1. Clone the Repository
+```bash
+git clone [https://github.com/mahesh-1-0/BrainSight-AI.git](https://github.com/mahesh-1-0/BrainSight-AI.git)
+cd BrainSight-AI
+```
+
+### 2. Set Up Virtual Environment
+```bash
+# Windows
+python -m venv venv
+venv\Scripts\activate
+
+# macOS / Linux
+python3 -m venv venv
+source venv/bin/activate
+```
+
+### 3. Install Dependencies
+```bash
+pip install -r requirements.txt
+```
+
+### 4. Configure Environment Variables
+Create a .env file in the root directory:
+```bash
+Code snippet
+GEMINI_API_KEY=your_actual_gemini_api_key
+FLASK_ENV=development
+PORT=5000
+```
+
+### 5. Run the Application
+```bash
+python app.py
+Open http://127.0.0.1:5000/ in your web browser.
+```
+
