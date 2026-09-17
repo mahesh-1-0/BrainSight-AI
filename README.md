@@ -25,12 +25,12 @@
 ### 1. Patient Portal & MRI Scan Ingestion
 | Landing Interface | Multi-Format MRI Upload & Sample Scans |
 | :---: | :---: |
-| <img src="assets/homepage.jpg" width="460" alt="Landing Page"/> | <img src="assets/MRIscan.jpg" width="460" alt="MRI Scan Upload"/> |
+| <img src="assets/homepage.png" width="460" alt="Landing Page"/> | <img src="assets/MRIscan.png" width="460" alt="MRI Scan Upload"/> |
 
 ### 2. Explainable Classification & Clinical Reports
 | Grad-CAM Visual Heatmap | LLM Clinical Analysis & PDF Export |
 | :---: | :---: |
-| <img src="assets/MLpage.jpg" width="460" alt="Grad-CAM Tumor Heatmap"/> | <img src="assets/AIpage.jpg" width="460" alt="AI Generated Clinical Report"/> |
+| <img src="assets/MLpage.png" width="460" alt="Grad-CAM Tumor Heatmap"/> | <img src="assets/AIpage.png" width="460" alt="AI Generated Clinical Report"/> |
 
 ---
 
